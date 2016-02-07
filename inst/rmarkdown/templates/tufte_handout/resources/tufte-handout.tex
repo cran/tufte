@@ -12,7 +12,16 @@ $if(euro)$
   \usepackage{eurosym}
 $endif$
 \else % if luatex or xelatex
+  \makeatletter
+  \@ifpackageloaded{fontspec}{}{\usepackage{fontspec}}
+  \makeatother
   \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+  \makeatletter
+  \@ifpackageloaded{soul}{
+     \renewcommand\allcapsspacing[1]{{\addfontfeature{LetterSpace=15}#1}}
+     \renewcommand\smallcapsspacing[1]{{\addfontfeature{LetterSpace=10}#1}}
+   }{}
+  \makeatother
 $if(euro)$
   \newcommand{\euro}{€}
 $endif$
@@ -49,6 +58,12 @@ $endfor$
 \fi
 $endif$
 
+$if(numbersections)$
+\setcounter{secnumdepth}{2}
+$else$
+\setcounter{secnumdepth}{-1}
+$endif$
+
 % citations
 $if(natbib)$
 \usepackage{natbib}
@@ -79,6 +94,10 @@ $endif$
 
 % morefloats
 \usepackage{morefloats}
+
+$if(ctex)$
+\usepackage{ctexcap}
+$endif$
 
 % tightlist macro required by pandoc >= 1.14
 \providecommand{\tightlist}{%
