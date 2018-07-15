@@ -1,10 +1,10 @@
-fe74a6049bcc93af8911448c83be76e5 *DESCRIPTION
+72fc6edc77e5e8c57526d6d6b007a8c1 *DESCRIPTION
 af7f5b7df7156d49f99c9fec3f5113c4 *NAMESPACE
-9b24aa2b7dfda4e3cd8b45d627589678 *NEWS.md
-19847b6ca4c471b7533f710d9130b314 *R/handout.R
-1506c3f1316fc324d9016c17627a1122 *R/html.R
+2ea100c383677d90efea96f3b4844de8 *NEWS.md
+e0ff8f2481e061ece287cf91845e66f6 *R/handout.R
+1ca88c64a2b8b432943b444ab6a171f3 *R/html.R
 f1b88a7bc64861f48f6de505d744dfa4 *R/utils.R
-3ea6817f72599af78f77d7181aa83b9a *README.md
+3827287ea34f90592009f972135e50c5 *README.md
 89e0dad03ffce9cdaffac2d6c9aabc35 *inst/NEWS.Rd
 f6e9faf9d12543e50aa407329f1910b7 *inst/rmarkdown/templates/tufte_ctex/skeleton/skeleton.Rmd
 b9ca5771bee1be8152140fbd2884ad50 *inst/rmarkdown/templates/tufte_ctex/template.yaml
@@ -20,7 +20,7 @@ ec3ca614f98c2fd411ee29beb65479a4 *inst/rmarkdown/templates/tufte_html/resources/
 3c86f91ebbacd29b764a72515715b901 *inst/rmarkdown/templates/tufte_html/resources/tufte-fonts.css
 879cdbe4f589f595a5789265b6d46b5f *inst/rmarkdown/templates/tufte_html/resources/tufte-italics.css
 d70360922f4617e9edbc4a2b2e983aff *inst/rmarkdown/templates/tufte_html/resources/tufte.css
-ae2fcefbca57befca6a3d9b6a26e5210 *inst/rmarkdown/templates/tufte_html/skeleton/skeleton.Rmd
+a04f7ae88931662fb34e19350828f926 *inst/rmarkdown/templates/tufte_html/skeleton/skeleton.Rmd
 37ccf6bb8b1258850b67699fc638c9d1 *inst/rmarkdown/templates/tufte_html/template.yaml
 92554b9ab343d481c1a71fe15a793406 *man/tufte_handout.Rd
 601360ed637b25ca58f5546a465b2d06 *tools/copy-tufte-css.sh
