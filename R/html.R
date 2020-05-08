@@ -10,8 +10,8 @@
 #' @param tufte_variant A variant of the Tufte style. Currently supported styles
 #'   are \code{default} (from the \code{tufte-css} project), and
 #'   \code{envisioned} (inspired by the project \code{Envisioned CSS}
-#'   \url{http://nogginfuel.com/envisioned-css/} but essentially just sets the
-#'   font family to \code{Roboto Condensed}, and changed the
+#'   \url{https://github.com/nogginfuel/envisioned-css} but essentially just
+#'   sets the font family to \code{Roboto Condensed}, and changed the
 #'   background/foregroudn colors).
 #' @param margin_references Whether to place citations in margin notes.
 #' @rdname tufte_handout
@@ -182,7 +182,7 @@ parse_footnotes = function(x, fn_label = 'fn') {
   j = min(j[j > i])
   n = length(x)
   r = sprintf(
-    '<li id="%s([0-9]+)"><p>(.+)<a href="#%sref\\1"([^>]*)>.</a></p></li>',
+    '<li id="%s([0-9]+)"><p>(.+)<a href="#%sref\\1"([^>]*)>.{1,2}</a></p></li>',
     fn_label, fn_label
   )
   s = paste(x[i:j], collapse = '\n')
@@ -194,7 +194,7 @@ parse_footnotes = function(x, fn_label = 'fn') {
 
 # move reference items from the bottom to the margin (as margin notes)
 margin_references = function(x) {
-  i = which(x == '<div id="refs" class="references">')
+  i = grep('^<div id="refs" class="references[^"]*">$', x)
   if (length(i) != 1) return(x)
   # link-citations: no
   if (length(grep('<a href="#ref-[^"]+"[^>]*>([^<]+)</a>', x)) == 0) return(x)
