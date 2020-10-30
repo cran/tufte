@@ -1,13 +1,13 @@
-1392efe2c9e308614642e217ddcd7004 *DESCRIPTION
+33f8f0571dd096a1a853045b07058ed0 *DESCRIPTION
 af7f5b7df7156d49f99c9fec3f5113c4 *NAMESPACE
 aca9b29e3d9759f148aaa0db9745985a *R/handout.R
-a7d3ce4e6988a8500f514cabcf3c32ca *R/html.R
+99187d605e9a849ab6d86c9521b7e3e2 *R/html.R
 f1b88a7bc64861f48f6de505d744dfa4 *R/utils.R
-30a300b9849660a518011fa2de2e4c4f *README.md
+2b02c15f5c354f0c6313fc4d9bcabdc6 *README.md
 89e0dad03ffce9cdaffac2d6c9aabc35 *inst/NEWS.Rd
 f6e9faf9d12543e50aa407329f1910b7 *inst/rmarkdown/templates/tufte_ctex/skeleton/skeleton.Rmd
 b9ca5771bee1be8152140fbd2884ad50 *inst/rmarkdown/templates/tufte_ctex/template.yaml
-8452d5cf1ddd7c8da52cfdb875fa6421 *inst/rmarkdown/templates/tufte_handout/resources/tufte-handout.tex
+1093a71f58d63661419dd0bf16a3ea57 *inst/rmarkdown/templates/tufte_handout/resources/tufte-handout.tex
 7246c4c84252692e7ebcabd26dcb8734 *inst/rmarkdown/templates/tufte_html/resources/LICENSE
 b7b632602b08c1ba1172757b3afe0002 *inst/rmarkdown/templates/tufte_html/resources/envisioned.css
 5294d5d521aab523c8acd8ac96cfe4c0 *inst/rmarkdown/templates/tufte_html/resources/et-book/bold-line-figures.ttf
@@ -19,7 +19,7 @@ ec3ca614f98c2fd411ee29beb65479a4 *inst/rmarkdown/templates/tufte_html/resources/
 3c86f91ebbacd29b764a72515715b901 *inst/rmarkdown/templates/tufte_html/resources/tufte-fonts.css
 879cdbe4f589f595a5789265b6d46b5f *inst/rmarkdown/templates/tufte_html/resources/tufte-italics.css
 db68faaedd336d364be373ebcc0e01dc *inst/rmarkdown/templates/tufte_html/resources/tufte.css
-e44b44e1ef622302fd6916943e5fc04c *inst/rmarkdown/templates/tufte_html/skeleton/skeleton.Rmd
+bb44bd486053a390bd1b4900408a7087 *inst/rmarkdown/templates/tufte_html/skeleton/skeleton.Rmd
 37ccf6bb8b1258850b67699fc638c9d1 *inst/rmarkdown/templates/tufte_html/template.yaml
 a3a752159f7ba1096104119784f254a5 *man/tufte_handout.Rd
 601360ed637b25ca58f5546a465b2d06 *tools/copy-tufte-css.sh
