@@ -1,7 +1,7 @@
-a8ff9aa65724cf1fab20c584904c76b2 *DESCRIPTION
+95c24dea04dc7a7ca16a881d4f784ede *DESCRIPTION
 af7f5b7df7156d49f99c9fec3f5113c4 *NAMESPACE
 76f6aeada57991564a0c67935353addb *R/handout.R
-99187d605e9a849ab6d86c9521b7e3e2 *R/html.R
+23e2566eb076346f946ba2bc8eaa44a6 *R/html.R
 f1b88a7bc64861f48f6de505d744dfa4 *R/utils.R
 2b02c15f5c354f0c6313fc4d9bcabdc6 *README.md
 89e0dad03ffce9cdaffac2d6c9aabc35 *inst/NEWS.Rd
@@ -22,4 +22,8 @@ db68faaedd336d364be373ebcc0e01dc *inst/rmarkdown/templates/tufte_html/resources/
 3f044cd4ba3269322d1b92fa960438a6 *inst/rmarkdown/templates/tufte_html/skeleton/skeleton.Rmd
 37ccf6bb8b1258850b67699fc638c9d1 *inst/rmarkdown/templates/tufte_html/template.yaml
 a3a752159f7ba1096104119784f254a5 *man/tufte_handout.Rd
+0382b700ae55feeba25194ab65c22e11 *tests/testthat.R
+fab598ed42ae679f843ccbc4ee370c98 *tests/testthat/_snaps/html.md
+17743393bfc9c9562067976a6e7802e2 *tests/testthat/resources/margins_references.Rmd
+745dfea3c11cb8bad830c436068afe4e *tests/testthat/test-html.R
 601360ed637b25ca58f5546a465b2d06 *tools/copy-tufte-css.sh
