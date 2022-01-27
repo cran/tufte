@@ -48,8 +48,10 @@ sans_serif(text)
 
 \item{fig_height}{Default height (in inches) for figures}
 
-\item{fig_crop}{\code{TRUE} to automatically apply the \code{pdfcrop} utility
-(if available) to pdf figures}
+\item{fig_crop}{Whether to crop PDF figures with the command
+\command{pdfcrop}. This requires the tools \command{pdfcrop} and
+\command{ghostscript} to be installed. By default, \code{fig_crop = TRUE}
+if these two tools are available.}
 
 \item{dev}{Graphics device to use for figure output (defaults to pdf)}
 
@@ -75,7 +77,7 @@ are \code{default} (from the \code{tufte-css} project), and
 \code{envisioned} (inspired by the project \code{Envisioned CSS}
 \url{https://github.com/nogginfuel/envisioned-css} but essentially just
 sets the font family to \code{Roboto Condensed}, and changed the
-background/foregroudn colors).}
+background/foreground colors).}
 
 \item{margin_references}{Whether to place citations in margin notes.}
 
@@ -112,7 +114,7 @@ class: \url{https://tufte-latex.github.io/tufte-latex/}.
 }
 \examples{
 library(tufte)
-newthought("In this section")
+newthought('In this section')
 }
 \references{
 See \url{https://rstudio.github.io/tufte/} for an example.

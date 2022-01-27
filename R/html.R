@@ -12,7 +12,7 @@
 #'   \code{envisioned} (inspired by the project \code{Envisioned CSS}
 #'   \url{https://github.com/nogginfuel/envisioned-css} but essentially just
 #'   sets the font family to \code{Roboto Condensed}, and changed the
-#'   background/foregroudn colors).
+#'   background/foreground colors).
 #' @param margin_references Whether to place citations in margin notes.
 #' @rdname tufte_handout
 #' @export
@@ -176,7 +176,7 @@ tufte_html_dependency = function(features, variant) {
 # we assume one footnote only contains one paragraph here, although it is
 # possible to write multiple paragraphs in a footnote with Pandoc's Markdown
 parse_footnotes = function(x, fn_label = 'fn') {
-  i = which(x == '<div class="footnotes">')
+  i = grep('^<div class="footnotes[^"]*"[^>]*>', x)
   if (length(i) == 0) return(list(items = character(), range = integer()))
   j = which(x == '</div>')
   j = min(j[j > i])
