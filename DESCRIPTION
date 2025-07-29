@@ -1,7 +1,7 @@
 Type: Package
 Package: tufte
 Title: Tufte's Styles for R Markdown Documents
-Version: 0.13
+Version: 0.14.0
 Authors@R: c(
     person("Yihui", "Xie", role = "aut", email = "xie@yihui.name", comment = c(ORCID = "0000-0003-0645-5666")),
     person("Christophe", "Dervieux", role = c("ctb", "cre"), email = "cderv@posit.co", comment = c(ORCID = "0000-0003-4474-2498")),
@@ -20,12 +20,12 @@ Imports: htmltools, knitr (>= 1.28), rmarkdown (>= 2.11), xfun (>=
 Suggests: covr, testthat (>= 3.1.0), withr (>= 2.3.0)
 Config/testthat/edition: 3
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 NeedsCompilation: no
-Packaged: 2023-06-22 15:15:18 UTC; chris
-Author: Yihui Xie [aut] (<https://orcid.org/0000-0003-0645-5666>),
-  Christophe Dervieux [ctb, cre]
-    (<https://orcid.org/0000-0003-4474-2498>),
+Packaged: 2025-07-29 20:02:10 UTC; chris
+Author: Yihui Xie [aut] (ORCID: <https://orcid.org/0000-0003-0645-5666>),
+  Christophe Dervieux [ctb, cre] (ORCID:
+    <https://orcid.org/0000-0003-4474-2498>),
   JJ Allaire [aut],
   Andrzej Oles [ctb],
   Dave Liepmann [ctb] (Tufte CSS in
@@ -33,4 +33,4 @@ Author: Yihui Xie [aut] (<https://orcid.org/0000-0003-0645-5666>),
   Posit Software, PBC [cph, fnd]
 Maintainer: Christophe Dervieux <cderv@posit.co>
 Repository: CRAN
-Date/Publication: 2023-06-22 16:50:02 UTC
+Date/Publication: 2025-07-29 20:30:02 UTC

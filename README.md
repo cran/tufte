@@ -11,7 +11,7 @@ status](https://www.r-pkg.org/badges/version/tufte)](https://CRAN.R-project.org/
 mirror](https://cranlogs.r-pkg.org/badges/tufte)](https://cran.r-project.org/package=tufte)
 [![R-CMD-check](https://github.com/rstudio/tufte/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/rstudio/tufte/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/rstudio/tufte/branch/main/graph/badge.svg)](https://app.codecov.io/gh/rstudio/tufte?branch=main)
+coverage](https://codecov.io/gh/rstudio/tufte/graph/badge.svg)](https://app.codecov.io/gh/rstudio/tufte)
 <!-- badges: end -->
 
 This R package provides a few R Markdown output formats that use the
@@ -58,7 +58,7 @@ rmarkdown::draft("tufte.Rmd", "tufte_html", "tufte")
 There are two main places to get help:
 
 1.  The [RStudio
-    community](https://community.rstudio.com/c/r-markdown/10) is a
+    community](https://forum.posit.co/c/quarto-r-markdown/10) is a
     friendly place to ask any questions about rmarkdown and the R
     Markdown family of packages. Use tag **tufte** in your post.
 
