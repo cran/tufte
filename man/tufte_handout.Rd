@@ -3,6 +3,9 @@
 \name{tufte_handout}
 \alias{tufte_handout}
 \alias{tufte_book}
+\alias{tufte_handout2}
+\alias{tufte_book2}
+\alias{tufte_html2}
 \alias{tufte_html}
 \alias{newthought}
 \alias{margin_note}
@@ -13,20 +16,28 @@
 tufte_handout(
   fig_width = 4,
   fig_height = 2.5,
-  fig_crop = TRUE,
+  fig_crop = "auto",
   dev = "pdf",
   highlight = "default",
+  margin_fig_pos = NULL,
   ...
 )
 
 tufte_book(
   fig_width = 4,
   fig_height = 2.5,
-  fig_crop = TRUE,
+  fig_crop = "auto",
   dev = "pdf",
   highlight = "default",
+  margin_fig_pos = NULL,
   ...
 )
+
+tufte_handout2(...)
+
+tufte_book2(...)
+
+tufte_html2(...)
 
 tufte_html(
   ...,
@@ -68,6 +79,16 @@ if these two tools are available.}
 
   Pass \code{NULL} to prevent syntax highlighting.}
 
+\item{margin_fig_pos}{Default vertical offset for margin figures (a LaTeX
+length such as \code{"0cm"} or \code{"-5pt"}). When set, this value is used as the
+\code{fig.pos} for all chunks with \code{fig.margin = TRUE}, unless the chunk
+specifies its own \code{fig.pos}. This avoids the problem of setting \code{fig.pos}
+globally via \code{knitr::opts_chunk$set()}, which would also affect regular
+figures where \code{fig.pos} is a placement specifier (e.g. \code{"htbp"}), not a
+length. Can also be set per-chunk or via \code{knitr::opts_chunk$set()} as the
+\code{margin_fig_pos} chunk option. Defaults to \code{NULL} (use the Tufte-LaTeX
+class default of \verb{-1.2ex}).}
+
 \item{...}{Other arguments to be passed to \code{\link[rmarkdown:pdf_document]{rmarkdown::pdf_document()}} or
 \code{\link[rmarkdown:html_document]{rmarkdown::html_document()}} (note you cannot use the \code{template}
 argument in \code{tufte_handout} or the \code{theme} argument in
@@ -96,6 +117,15 @@ background/foreground colors).}
 \item{icon}{A character string to indicate there is a hidden margin note when
 the page width is too narrow (by default it is a circled plus sign)}
 }
+\value{
+\code{tufte_handout()}, \code{tufte_book()}, \code{tufte_html()}, and the
+bookdown wrappers \code{tufte_handout2()}, \code{tufte_book2()}, and
+\code{tufte_html2()} return an R Markdown output format object that can
+be passed to \code{\link[rmarkdown:render]{rmarkdown::render()}}. The inline helpers
+\code{newthought()}, \code{margin_note()}, \code{quote_footer()}, and
+\code{sans_serif()} return a character string with HTML or LaTeX markup
+depending on the active output format.
+}
 \description{
 Templates for creating handouts according to the style of Edward R. Tufte and
 Richard Feynman.
@@ -104,8 +134,18 @@ Richard Feynman.
 \code{tufte_handout()} provides the PDF format based on the Tufte-LaTeX
 class: \url{https://tufte-latex.github.io/tufte-latex/}.
 
+\code{tufte_handout2()} and \code{tufte_book2()} are wrappers around
+\code{\link[bookdown:pdf_book]{bookdown::pdf_book()}} that use the corresponding tufte format as the
+base format. They support bookdown text references (\code{(ref:label)}) in
+figure and table captions, cross-references, and other bookdown
+extensions. Requires the \pkg{bookdown} package to be installed.
+
 \code{tufte_html()} provides the HTML format based on the Tufte CSS:
 \url{https://edwardtufte.github.io/tufte-css/}.
+
+\code{tufte_html2()} is a wrapper around \code{\link[bookdown:html_document2]{bookdown::html_document2()}}
+that uses \code{tufte_html()} as the base format, enabling text references
+and cross-references. Requires the \pkg{bookdown} package.
 
 \code{newthought()} can be used in inline R expressions in R
 Markdown
@@ -120,9 +160,28 @@ HTML (\samp{<span class="newthought">text</span>}) and PDF
 \code{margin_note()} can be used in inline R expressions to write a
 margin note (like a sidenote but not numbered).
 
-\code{quote_footer()} formats text as the footer of a quote. It puts
-\code{text} in \samp{<footer></footer>} for HTML output, and
-after \samp{\\hfill} for LaTeX output (to right-align text).
+\code{quote_footer()} formats text as the footer of a quote. It works in
+any HTML or LaTeX output format, not only tufte formats, and tries to
+render \code{text} consistently across formats:
+\itemize{
+\item If \code{text} starts with \code{"---"} (or an em-dash), an em-dash + non-breaking
+space is rendered before the rest of the text in every output. The
+leading \code{"---"} is stripped from \code{text} to avoid duplication when the
+destination format would otherwise inject its own em-dash.
+\item For tufte HTML, \code{text} is wrapped in a \verb{<footer>} element styled by
+\code{tufte.css}. For non-tufte HTML (e.g. \code{rmarkdown::html_document()},
+including \code{bslib} Bootstrap 4 and 5 themes), \code{text} is wrapped in a
+\verb{<footer class="blockquote-footer">} so that Bootstrap's
+\code{.blockquote-footer} styling (including the \verb{::before} em-dash) applies.
+An inline \code{text-align: right} is added in both cases.
+\item For LaTeX output (tufte or non-tufte), \code{text} is prepended with
+\samp{\\hfill} to right-align it. Pandoc's smart-punctuation extension
+converts a leading \code{"---"} to an em-dash glyph.
+}
+
+\code{quote_footer()} detects whether the active output is a tufte format via
+the \code{tufte.format} entry that the tufte output formats register in
+\code{knitr::opts_knit}.
 
 \code{sans_serif()} applies sans-serif fonts to \code{text}.
 }

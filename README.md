@@ -20,7 +20,7 @@ example.
 
 ## Books
 
-<a href="https://bookdown.org/yihui/rmarkdown/tufte-handouts.html"><img src="https://bookdown.org/yihui/rmarkdown/images/cover.png" alt="R Markdown: The Definitive Guide" class="book" height="400"/></a>
+<a href="https://yihui.org/rmarkdown/tufte-handouts.html"><img src="https://yihui.org/rmarkdown/images/cover.png" alt="R Markdown: The Definitive Guide" class="book" height="400"/></a>
 
 See about the Tufte Handouts format in R Markdown Definitive Guide
 

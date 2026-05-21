@@ -1,0 +1,470 @@
+# pkg_file() ---------------------------------------------------------------
+
+test_that("pkg_file() resolves to inst/ when loaded via pkgload", {
+  patches_dir <- pkg_file("rmarkdown", "templates", "tufte_handout", "patches")
+  expect_true(dir.exists(patches_dir))
+  expect_true(file.exists(file.path(patches_dir, "tufte-common.def")))
+  if (devtools_loaded("tufte")) {
+    expect_match(patches_dir, file.path("inst", "rmarkdown"), fixed = TRUE)
+  }
+})
+
+# PDF rendering ------------------------------------------------------------
+
+local_render_pdf <- function(input, .env = parent.frame()) {
+  skip_if_not_pandoc()
+  skip_if_not_tinytex()
+  output_file <- withr::local_tempfile(.local_envir = .env, fileext = ".pdf")
+  # clean = FALSE preserves the .log file for post-render inspection.
+  # Muffle bibentry warnings: tufte-latex uses \nobibliography* which triggers
+  # advisories when no \bibliography follows. This is inherent to the class
+  # and unrelated to what these tests exercise.
+  withCallingHandlers(
+    rmarkdown::render(
+      input,
+      output_file = output_file,
+      quiet = TRUE,
+      clean = FALSE
+    ),
+    warning = function(w) {
+      if (
+        grepl(
+          "bibentry|nobibliography|Marginpar",
+          conditionMessage(w),
+          ignore.case = TRUE
+        )
+      ) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+}
+
+test_that("tufte_handout renders a basic PDF without error (#127)", {
+  skip_on_cran()
+  rmd <- local_rmd_file(
+    "---",
+    "output: tufte::tufte_handout",
+    "---",
+    "",
+    "Hello world.",
+    .env = parent.frame()
+  )
+  output <- local_render_pdf(rmd)
+  expect_true(file.exists(output))
+})
+
+# margin_fig_pos chunk option (#62) ----------------------------------------
+
+local_render_tex <- function(rmd_lines, .env = parent.frame()) {
+  skip_if_not_pandoc()
+  skip_if_not_tinytex()
+  rmd <- local_rmd_file(rmd_lines, .env = .env)
+  output <- withr::local_tempfile(.local_envir = .env, fileext = ".pdf")
+  withCallingHandlers(
+    rmarkdown::render(rmd, output_file = output, quiet = TRUE, clean = FALSE),
+    warning = function(w) {
+      if (
+        grepl(
+          "bibentry|nobibliography|Marginpar",
+          conditionMessage(w),
+          ignore.case = TRUE
+        )
+      ) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+  tex_file <- xfun::with_ext(output, "tex")
+  if (!file.exists(tex_file)) {
+    skip("keep_tex did not produce a .tex file")
+  }
+  xfun::read_utf8(tex_file)
+}
+
+test_that("margin_fig_pos via YAML sets the marginfigure offset (#62)", {
+  skip_on_cran()
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    keep_tex: true",
+    "    margin_fig_pos: '0.5cm'",
+    "---",
+    "",
+    "```{r fig.margin=TRUE, fig.cap='test', echo=FALSE}",
+    "plot(1:5)",
+    "```",
+    "",
+    "Text after."
+  ))
+  marginfig <- grep("\\\\begin\\{marginfigure\\}", tex, value = TRUE)
+  expect_length(marginfig, 1)
+  expect_match(marginfig, "[0.5cm]", fixed = TRUE)
+})
+
+test_that("margin_fig_pos via opts_chunk$set works (#62)", {
+  skip_on_cran()
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    keep_tex: true",
+    "---",
+    "",
+    "```{r setup, include=FALSE}",
+    "knitr::opts_chunk$set(margin_fig_pos = '0.5cm')",
+    "```",
+    "",
+    "```{r fig.margin=TRUE, fig.cap='test', echo=FALSE}",
+    "plot(1:5)",
+    "```",
+    "",
+    "Text after."
+  ))
+  marginfig <- grep("\\\\begin\\{marginfigure\\}", tex, value = TRUE)
+  expect_length(marginfig, 1)
+  expect_match(marginfig, "[0.5cm]", fixed = TRUE)
+})
+
+test_that("fig.pos overrides margin_fig_pos on a specific chunk (#62)", {
+  skip_on_cran()
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    keep_tex: true",
+    "    margin_fig_pos: '0.5cm'",
+    "---",
+    "",
+    "```{r fig.margin=TRUE, fig.pos='2cm', fig.cap='test', echo=FALSE}",
+    "plot(1:5)",
+    "```",
+    "",
+    "Text after."
+  ))
+  marginfig <- grep("\\\\begin\\{marginfigure\\}", tex, value = TRUE)
+  expect_length(marginfig, 1)
+  # fig.pos takes precedence
+  expect_match(marginfig, "[2cm]", fixed = TRUE)
+})
+
+test_that("margin_fig_pos does not affect regular figures (#62)", {
+  skip_on_cran()
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    keep_tex: true",
+    "    margin_fig_pos: '0.5cm'",
+    "---",
+    "",
+    "```{r fig.cap='regular figure', echo=FALSE}",
+    "plot(1:5)",
+    "```",
+    "",
+    "Text after."
+  ))
+  # Regular figure should NOT have the margin offset
+  figure_lines <- grep("\\\\begin\\{figure\\}", tex, value = TRUE)
+  expect_false(any(grepl("0.5cm", figure_lines, fixed = TRUE)))
+})
+
+test_that("margin_fig_pos wins over a global opts_chunk$set(fig.pos=) (#62)", {
+  skip_on_cran()
+  # Reproduces the pre-fix bug: a global `fig.pos = "htbp"` (intended for
+  # regular figures) used to leak onto margin chunks via merged-options
+  # lookup, producing `\begin{marginfigure}[htbp]` and a LaTeX error.
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    keep_tex: true",
+    "    margin_fig_pos: '0.5cm'",
+    "---",
+    "",
+    "```{r setup, include=FALSE}",
+    "knitr::opts_chunk$set(fig.pos = 'htbp')",
+    "```",
+    "",
+    "```{r fig.margin=TRUE, fig.cap='margin', echo=FALSE}",
+    "plot(1:5)",
+    "```",
+    "",
+    "```{r fig.cap='regular', echo=FALSE}",
+    "plot(1:5)",
+    "```"
+  ))
+  marginfig <- grep("\\\\begin\\{marginfigure\\}", tex, value = TRUE)
+  expect_length(marginfig, 1)
+  # Margin figure must use the length, not the global placement specifier
+  expect_match(marginfig, "[0.5cm]", fixed = TRUE)
+  expect_false(any(grepl("htbp", marginfig, fixed = TRUE)))
+  # Regular figure must still receive the global placement specifier
+  figure_lines <- grep("\\\\begin\\{figure\\}", tex, value = TRUE)
+  expect_true(any(grepl("htbp", figure_lines, fixed = TRUE)))
+})
+
+test_that("opts_template fig.pos overrides margin_fig_pos (#62)", {
+  skip_on_cran()
+  # Indirect chunk-level fig.pos (via opts_template + opts.label) never
+  # appears in `params.src`, so the params.src-literal check alone would
+  # miss it. The hook must also notice that `options$fig.pos` differs from
+  # the global knitr default and respect the chunk's intent.
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    keep_tex: true",
+    "    margin_fig_pos: '0.5cm'",
+    "---",
+    "",
+    "```{r setup, include=FALSE}",
+    "knitr::opts_template$set(margin_at_1 = list(fig.margin = TRUE, fig.pos = '1cm'))",
+    "```",
+    "",
+    "```{r opts.label='margin_at_1', fig.cap='templated margin', echo=FALSE}",
+    "plot(1:5)",
+    "```"
+  ))
+  marginfig <- grep("\\\\begin\\{marginfigure\\}", tex, value = TRUE)
+  expect_length(marginfig, 1)
+  # opts_template value (1cm) must win, NOT the format-level margin_fig_pos
+  expect_match(marginfig, "[1cm]", fixed = TRUE)
+  expect_false(any(grepl("0.5cm", marginfig, fixed = TRUE)))
+})
+
+# tufte_handout2 / tufte_book2 (bookdown wrappers, issue #60) ---------------
+
+test_that("tufte_handout2() renders a basic PDF", {
+  skip_on_cran()
+  skip_if_not_installed("bookdown")
+  rmd <- local_rmd_file(
+    "---",
+    "output: tufte::tufte_handout2",
+    "---",
+    "",
+    "Hello world."
+  )
+  output <- local_render_pdf(rmd)
+  expect_true(file.exists(output))
+})
+
+test_that("tufte_handout2() resolves text references in fig.cap (#60)", {
+  skip_on_cran()
+  skip_if_not_installed("bookdown")
+  tex <- local_render_tex(c(
+    "---",
+    "output:",
+    "  tufte::tufte_handout2:",
+    "    keep_tex: true",
+    "---",
+    "",
+    "(ref:cars-cap) A plot of the [cars data set](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/cars.html).",
+    "",
+    "```{r cars-plot, fig.cap='(ref:cars-cap)', echo=FALSE}",
+    "plot(cars)",
+    "```"
+  ))
+  cap_lines <- grep("\\\\caption", tex, value = TRUE)
+  expect_true(
+    any(grepl("\\\\href\\{", cap_lines)),
+    info = "fig.cap should contain \\href from resolved text reference"
+  )
+  # Raw markdown link syntax should NOT appear
+  expect_false(
+    any(grepl("](https://", cap_lines, fixed = TRUE)),
+    info = "Raw markdown link should not appear in \\caption"
+  )
+})
+
+test_that("tufte_book2() renders a basic PDF", {
+  skip_on_cran()
+  skip_if_not_installed("bookdown")
+  rmd <- local_rmd_file(
+    "---",
+    "output: tufte::tufte_book2",
+    "---",
+    "",
+    "Hello world."
+  )
+  output <- local_render_pdf(rmd)
+  expect_true(file.exists(output))
+})
+
+test_that("check_bookdown() errors when bookdown is not available", {
+  skip_on_cran()
+  local_mocked_bindings(
+    pkg_available = function(...) FALSE,
+    .package = "xfun"
+  )
+  expect_error(check_bookdown(), "bookdown.*required")
+})
+
+# quote_footer() with natbib citation (#73) -------------------------------
+
+# Renders an Rmd with a bibliography next to it in a tempdir so YAML's
+# relative `bibliography:` path resolves. Returns the .tex content for
+# inline assertions.
+local_render_natbib_tex <- function(format, .env = parent.frame()) {
+  skip_if_not_pandoc()
+  skip_if_not_tinytex()
+  tmpdir <- withr::local_tempdir(.local_envir = .env)
+  bib_src <- test_path("resources", "refs-natbib.bib")
+  bib_dest <- file.path(tmpdir, "refs-natbib.bib")
+  file.copy(bib_src, bib_dest)
+  rmd <- file.path(tmpdir, "doc.Rmd")
+  xfun::write_utf8(
+    c(
+      "---",
+      "output:",
+      sprintf("  %s:", format),
+      "    citation_package: natbib",
+      "    keep_tex: true",
+      "bibliography: refs-natbib.bib",
+      "---",
+      "",
+      if (format == "beamer_presentation") "## Slide" else NULL,
+      "",
+      "> \"A test quote.\"",
+      ">",
+      "> `r tufte::quote_footer('--- [@dorian10: 3]')`"
+    ),
+    rmd
+  )
+  output <- file.path(tmpdir, "doc.pdf")
+  withCallingHandlers(
+    rmarkdown::render(rmd, output_file = output, quiet = TRUE, clean = FALSE),
+    warning = function(w) {
+      if (
+        grepl(
+          "bibentry|nobibliography",
+          conditionMessage(w),
+          ignore.case = TRUE
+        )
+      ) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
+  expect_true(file.exists(output))
+  tex_file <- xfun::with_ext(output, "tex")
+  skip_if(!file.exists(tex_file), "keep_tex did not produce a .tex file")
+  xfun::read_utf8(tex_file)
+}
+
+test_that("tufte_handout renders natbib citation inside quote_footer() (#73)", {
+  skip_on_cran()
+  tex <- local_render_natbib_tex("tufte::tufte_handout")
+  tex_joined <- paste(tex, collapse = "\n")
+  expect_match(tex_joined, "\\\\hfill")
+  expect_match(tex_joined, "\\\\citep\\[3\\]\\{dorian10\\}")
+})
+
+test_that("beamer_presentation renders natbib citation inside quote_footer() (#73)", {
+  skip_on_cran()
+  tex <- local_render_natbib_tex("beamer_presentation")
+  tex_joined <- paste(tex, collapse = "\n")
+  expect_match(tex_joined, "\\\\hfill")
+  expect_match(tex_joined, "\\\\citep\\[3\\]\\{dorian10\\}")
+})
+
+test_that("tufte_handout PDF log contains no xcolor usenames warning (#127)", {
+  skip_on_cran()
+  rmd <- local_rmd_file(
+    "---",
+    "output: tufte::tufte_handout",
+    "---",
+    "",
+    "Hello world.",
+    .env = parent.frame()
+  )
+  output <- local_render_pdf(rmd)
+  log_file <- xfun::with_ext(output, "log")
+  skip_if(!file.exists(log_file), "LaTeX log not found")
+  log_lines <- xfun::read_utf8(log_file)
+  expect_false(
+    any(grepl("usenames.*obsolete", log_lines, ignore.case = TRUE)),
+    label = "xcolor 'usenames' obsolete warning found in LaTeX log"
+  )
+})
+
+# natbib \citep / \citet routed to margin (#48) ----------------------------
+
+test_that("patches/tufte-common.def redefines natbib \\citep and \\citet (#48)", {
+  patches_dir <- pkg_file("rmarkdown", "templates", "tufte_handout", "patches")
+  def_content <- xfun::read_utf8(file.path(patches_dir, "tufte-common.def"))
+  # natbib emits \citep / \citet for [@key] / @key citations, but tufte-latex
+  # only routes \cite through the margin sidenote machinery. The patch must
+  # redefine \citep and \citet so pandoc-generated citations land in the
+  # margin too.
+  expect_true(
+    any(grepl("RenewDocumentCommand.*\\\\citep", def_content)),
+    label = "RenewDocumentCommand for \\citep present"
+  )
+  expect_true(
+    any(grepl("RenewDocumentCommand.*\\\\citet", def_content)),
+    label = "RenewDocumentCommand for \\citet present"
+  )
+  # The xparse signature must consume the optional star so raw-LaTeX
+  # \citep*{key} / \citet*{key} routes through the same margin path
+  # instead of mis-parsing the `*` as the citation key.
+  expect_true(
+    any(grepl("RenewDocumentCommand\\{\\\\citep\\}\\{s ", def_content)),
+    label = "\\citep signature consumes star (s o o m)"
+  )
+  expect_true(
+    any(grepl("RenewDocumentCommand\\{\\\\citet\\}\\{s ", def_content)),
+    label = "\\citet signature consumes star (s o o m)"
+  )
+})
+
+test_that("natbib citations render through tufte_handout (#48)", {
+  skip_on_cran()
+  rmd <- local_rmd_file(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    citation_package: natbib",
+    "bibliography: refs.bib",
+    "---",
+    "",
+    "Parenthetical [@smith2000]. Textual @jones2010 said X.",
+    .env = parent.frame()
+  )
+  writeLines(
+    c(
+      "@article{smith2000,author={Smith, John},title={t},journal={j},year={2000}}",
+      "@book{jones2010,author={Jones, Alice},title={t},publisher={p},year={2010}}"
+    ),
+    file.path(dirname(rmd), "refs.bib")
+  )
+  output <- local_render_pdf(rmd)
+  expect_true(file.exists(output))
+})
+
+test_that("raw-LaTeX \\citep* / \\citet* render through tufte_handout (#48)", {
+  skip_on_cran()
+  rmd <- local_rmd_file(
+    "---",
+    "output:",
+    "  tufte::tufte_handout:",
+    "    citation_package: natbib",
+    "bibliography: refs.bib",
+    "---",
+    "",
+    "Starred parenthetical \\citep*{smith2000}.",
+    "",
+    "Starred textual \\citet*{jones2010} said X.",
+    .env = parent.frame()
+  )
+  writeLines(
+    c(
+      "@article{smith2000,author={Smith, John},title={t},journal={j},year={2000}}",
+      "@book{jones2010,author={Jones, Alice},title={t},publisher={p},year={2010}}"
+    ),
+    file.path(dirname(rmd), "refs.bib")
+  )
+  output <- local_render_pdf(rmd)
+  expect_true(file.exists(output))
+})

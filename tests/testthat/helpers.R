@@ -1,4 +1,8 @@
 # Use to test pandoc availability or version lower than
+skip_if_not_tinytex <- function() {
+  if (!tinytex::is_tinytex()) skip("TinyTeX is not installed")
+}
+
 skip_if_not_pandoc <- function(ver = NULL) {
   if (!rmarkdown::pandoc_available(ver)) {
     msg <- if (is.null(ver)) {
@@ -58,4 +62,21 @@ local_pandoc_convert <- function(
   skip_if_not_pandoc()
   res <- local_render(input, ...)
   xfun::read_utf8(res)
+}
+
+# Temporarily set entries in knitr::opts_knit for the duration of the calling
+# frame; original values are restored via withr::defer.
+local_knit_opts <- function(..., .env = parent.frame()) {
+  new <- list(...)
+  if (!length(new)) {
+    return(invisible())
+  }
+  keys <- names(new)
+  old <- stats::setNames(
+    lapply(keys, function(k) knitr::opts_knit$get(k)),
+    keys
+  )
+  knitr::opts_knit$set(new)
+  withr::defer(knitr::opts_knit$set(old), envir = .env)
+  invisible()
 }

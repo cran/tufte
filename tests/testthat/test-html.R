@@ -40,8 +40,10 @@ citeproc_variant <- function() {
   } else if (!rmarkdown::pandoc_available("3.1.8")) {
     # Pandoc 2.14.1 fixed  that
     "new-citeproc-post-2.14.1"
-  } else {
+  } else if (!rmarkdown::pandoc_available("3.8")) {
     "new-citeproc-post-3.1.8"
+  } else {
+    "new-citeproc-post-3.8"
   }
 }
 
@@ -69,6 +71,155 @@ test_that("put references in margin when link-citations: yes using csl", {
     c("--csl", "https://www.zotero.org/styles/chicago-author-date-16th-edition")
   )
 })
+
+test_that("nocite references survive margin_references() (issue #35)", {
+  skip_on_cran()
+  skip_if_not_pandoc()
+  rmd <- local_rmd_file(
+    "---",
+    "title: test",
+    "output: tufte::tufte_html",
+    "bibliography: refs.bib",
+    "link-citations: yes",
+    "nocite: |",
+    "  @nocite_only",
+    "---",
+    "",
+    "See @cited_in_text for details."
+  )
+  # Create a minimal .bib next to the Rmd
+  bib <- file.path(dirname(rmd), "refs.bib")
+  xfun::write_utf8(
+    c(
+      "@article{cited_in_text,",
+      "  author = {Smith, John},",
+      "  title = {Cited Article},",
+      "  journal = {J. Examples},",
+      "  year = {2020}",
+      "}",
+      "@article{nocite_only,",
+      "  author = {Doe, Jane},",
+      "  title = {Nocite Article},",
+      "  journal = {J. Nocite},",
+      "  year = {2019}",
+      "}"
+    ),
+    bib
+  )
+  withr::defer(unlink(bib))
+  html <- .render_and_read(rmd)
+  # The nocite-only reference must appear somewhere in the output
+  expect_true(
+    any(grepl("ref-nocite_only", html)),
+    info = "nocite entry should not be dropped when link-citations: yes (issue #35)"
+  )
+  # The in-text reference should also still be present (as margin note)
+  expect_true(
+    any(grepl("Cited Article|ref-cited_in_text", html)),
+    info = "in-text citation should still appear"
+  )
+})
+
+test_that("fig.margin=TRUE works with fig.align set (issue #54)", {
+  skip_on_cran()
+  skip_if_not_pandoc()
+  rmd <- local_rmd_file(
+    "---",
+    "title: test",
+    "output: tufte::tufte_html",
+    "---",
+    "",
+    '```{r fig-margin-align, fig.margin=TRUE, fig.align="center", fig.cap="test cap"}',
+    "plot(1)",
+    "```"
+  )
+  html <- .render_and_read(rmd)
+  # The margin figure wrapper must be present
+  margin_lines <- grep("marginnote shownote", html, value = TRUE)
+  expect_true(
+    length(margin_lines) > 0,
+    info = "fig.margin=TRUE with fig.align should still produce marginnote wrapper"
+  )
+  # The raw <div class="figure" style="text-align: ..."> should NOT appear
+  # (it should be commented out inside the marginnote wrapper)
+  raw_div <- grep(
+    '<div class="figure" style=',
+    html,
+    fixed = TRUE,
+    value = TRUE
+  )
+  expect_true(
+    all(grepl("<!--", raw_div)),
+    info = "fig div with style should be inside HTML comment when fig.margin=TRUE"
+  )
+})
+
+test_that("fig.fullwidth=TRUE works with fig.align set", {
+  skip_on_cran()
+  skip_if_not_pandoc()
+  rmd <- local_rmd_file(
+    "---",
+    "title: test",
+    "output: tufte::tufte_html",
+    "---",
+    "",
+    '```{r fig-full-align, fig.fullwidth=TRUE, fig.align="center", fig.cap="test cap"}',
+    "plot(1)",
+    "```"
+  )
+  html <- .render_and_read(rmd)
+  fullwidth_lines <- grep("figure fullwidth", html, value = TRUE)
+  expect_true(
+    length(fullwidth_lines) > 0,
+    info = "fig.fullwidth=TRUE with fig.align should produce fullwidth class"
+  )
+})
+
+# tufte_html2 (bookdown wrapper) -------------------------------------------
+
+test_that("tufte_html2() renders", {
+  skip_on_cran()
+  skip_if_not_pandoc()
+  skip_if_not_installed("bookdown")
+  rmd <- local_rmd_file(
+    "---",
+    "title: test",
+    "output: tufte::tufte_html2",
+    "---",
+    "",
+    "Hello world."
+  )
+  html <- .render_and_read(rmd)
+  expect_true(length(html) > 0)
+})
+
+test_that("tufte_html2() resolves text references in fig.cap (#60)", {
+  skip_on_cran()
+  skip_if_not_pandoc()
+  skip_if_not_installed("bookdown")
+  rmd <- local_rmd_file(
+    "---",
+    "output: tufte::tufte_html2",
+    "---",
+    "",
+    "(ref:cars-cap) A plot of the [cars data set](https://example.org).",
+    "",
+    "```{r cars-plot, fig.cap='(ref:cars-cap)', echo=FALSE}",
+    "plot(cars)",
+    "```"
+  )
+  html <- paste(.render_and_read(rmd), collapse = "\n")
+  # Primary assertion: a regression that stops resolving (ref:label) in
+  # captions would leave the literal label in the rendered HTML. The
+  # link/href assertion alone is not enough because the (ref:) definition
+  # paragraph also contains the rendered link.
+  expect_false(grepl("(ref:cars-cap)", html, fixed = TRUE))
+  expect_match(html, '<a href="https://example\\.org">cars data set</a>')
+  # Raw markdown link syntax should NOT appear in resolved output
+  expect_false(grepl("](https://example.org)", html, fixed = TRUE))
+})
+
+# footnote parsing ---------------------------------------------------------
 
 test_that("footnotes are correctly parsed", {
   skip_on_cran()

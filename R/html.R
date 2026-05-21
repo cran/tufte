@@ -14,6 +14,16 @@
 #'   sets the font family to `Roboto Condensed`, and changed the
 #'   background/foreground colors).
 #' @param margin_references Whether to place citations in margin notes.
+#' @details `tufte_html2()` is a wrapper around [bookdown::html_document2()]
+#'   that uses `tufte_html()` as the base format, enabling text references
+#'   and cross-references. Requires the \pkg{bookdown} package.
+#' @rdname tufte_handout
+#' @export
+tufte_html2 <- function(...) {
+  check_bookdown()
+  bookdown::html_document2(..., base_format = tufte_html)
+}
+
 #' @rdname tufte_handout
 #' @export
 tufte_html <- function(
@@ -179,8 +189,11 @@ tufte_html <- function(
       )
       res <- gsub_fixed("</p>", "<!--</p>-->", res)
       res <- gsub_fixed("</div>", "<!--</div>--></span></p>", res)
-      res <- gsub_fixed(
-        '<div class="figure">',
+      # Use regex to match <div class="figure"> with optional style attribute
+      # (e.g. from fig.align); the style is dropped since margin positioning
+      # is handled by the marginnote CSS class
+      res <- gsub(
+        '<div class="figure"[^>]*>',
         paste0(
           "<p>",
           '<span class="marginnote shownote">',
@@ -189,8 +202,9 @@ tufte_html <- function(
         res
       )
     } else if (fig_fullwd) {
-      res <- gsub_fixed(
-        '<div class="figure">',
+      # Use regex to match optional style attribute from fig.align
+      res <- gsub(
+        '<div class="figure"[^>]*>',
         '<div class="figure fullwidth">',
         res
       )
@@ -212,6 +226,14 @@ tufte_html <- function(
     eng_block <- knitr::knit_engines$get("block")
     eng_block(options)
   })
+
+  # Expose the active tufte format to inline R helpers (e.g. quote_footer())
+  # via knitr's opts_knit channel, so they can branch on tufte-vs-non-tufte
+  # HTML output without relying on heuristics.
+  if (is.null(format$knitr$opts_knit)) {
+    format$knitr$opts_knit <- list()
+  }
+  format$knitr$opts_knit$tufte.format <- "html"
 
   format$inherits <- "html_document"
 
@@ -288,10 +310,24 @@ margin_references <- function(x) {
     ref[j] <- sub(dashes, sub("^([^.]+[.])( .+)$", "\\1", ref[j - 1]), ref[j])
   }
   ref <- marginnote_html(paste0('\\1<span class="marginnote">', ref, "</span>"))
+  # Track which references have in-text citations (nocite entries won't match)
+  matched <- logical(n)
   for (j in seq_len(n)) {
-    x <- gsub(ids[j], ref[j], x)
+    if (any(grepl(ids[j], x))) {
+      x <- gsub(ids[j], ref[j], x)
+      matched[j] <- TRUE
+    }
   }
-  x[-(i:(max(k) + 3))] # remove references at the bottom
+  if (all(matched)) {
+    x[-(i:(max(k) + 3))] # remove entire references section
+  } else {
+    # Remove only matched entries; keep nocite references at the bottom
+    remove <- unlist(lapply(k[matched], function(pos) pos:(pos + 2)))
+    if (length(remove) > 0) {
+      x <- x[-remove]
+    }
+    x
+  }
 }
 
 marginnote_html <- function(text = "", icon = "&#8853;") {

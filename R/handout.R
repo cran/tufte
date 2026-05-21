@@ -6,19 +6,36 @@
 #' `tufte_handout()` provides the PDF format based on the Tufte-LaTeX
 #' class: <https://tufte-latex.github.io/tufte-latex/>.
 #' @inheritParams rmarkdown::pdf_document
+#' @param margin_fig_pos Default vertical offset for margin figures (a LaTeX
+#'   length such as `"0cm"` or `"-5pt"`). When set, this value is used as the
+#'   `fig.pos` for all chunks with `fig.margin = TRUE`, unless the chunk
+#'   specifies its own `fig.pos`. This avoids the problem of setting `fig.pos`
+#'   globally via `knitr::opts_chunk$set()`, which would also affect regular
+#'   figures where `fig.pos` is a placement specifier (e.g. `"htbp"`), not a
+#'   length. Can also be set per-chunk or via `knitr::opts_chunk$set()` as the
+#'   `margin_fig_pos` chunk option. Defaults to `NULL` (use the Tufte-LaTeX
+#'   class default of `-1.2ex`).
 #' @param ... Other arguments to be passed to [rmarkdown::pdf_document()] or
 #'   [rmarkdown::html_document()] (note you cannot use the `template`
 #'   argument in `tufte_handout` or the `theme` argument in
 #'   `tufte_html()`; these arguments have been set internally)
+#' @return `tufte_handout()`, `tufte_book()`, `tufte_html()`, and the
+#'   bookdown wrappers `tufte_handout2()`, `tufte_book2()`, and
+#'   `tufte_html2()` return an R Markdown output format object that can
+#'   be passed to [rmarkdown::render()]. The inline helpers
+#'   `newthought()`, `margin_note()`, `quote_footer()`, and
+#'   `sans_serif()` return a character string with HTML or LaTeX markup
+#'   depending on the active output format.
 #' @references See <https://rstudio.github.io/tufte/> for an example.
 #' @export
 #' @examples library(tufte)
 tufte_handout <- function(
   fig_width = 4,
   fig_height = 2.5,
-  fig_crop = TRUE,
+  fig_crop = "auto",
   dev = "pdf",
   highlight = "default",
+  margin_fig_pos = NULL,
   ...
 ) {
   tufte_pdf(
@@ -28,6 +45,7 @@ tufte_handout <- function(
     fig_crop,
     dev,
     highlight,
+    margin_fig_pos = margin_fig_pos,
     ...
   )
 }
@@ -37,21 +55,51 @@ tufte_handout <- function(
 tufte_book <- function(
   fig_width = 4,
   fig_height = 2.5,
-  fig_crop = TRUE,
+  fig_crop = "auto",
   dev = "pdf",
   highlight = "default",
+  margin_fig_pos = NULL,
   ...
 ) {
-  tufte_pdf("tufte-book", fig_width, fig_height, fig_crop, dev, highlight, ...)
+  tufte_pdf(
+    "tufte-book",
+    fig_width,
+    fig_height,
+    fig_crop,
+    dev,
+    highlight,
+    margin_fig_pos = margin_fig_pos,
+    ...
+  )
+}
+
+#' @details `tufte_handout2()` and `tufte_book2()` are wrappers around
+#'   [bookdown::pdf_book()] that use the corresponding tufte format as the
+#'   base format. They support bookdown text references (`(ref:label)`) in
+#'   figure and table captions, cross-references, and other bookdown
+#'   extensions. Requires the \pkg{bookdown} package to be installed.
+#' @rdname tufte_handout
+#' @export
+tufte_handout2 <- function(...) {
+  check_bookdown()
+  bookdown::pdf_book(..., base_format = tufte_handout)
+}
+
+#' @rdname tufte_handout
+#' @export
+tufte_book2 <- function(...) {
+  check_bookdown()
+  bookdown::pdf_book(..., base_format = tufte_book)
 }
 
 tufte_pdf <- function(
   documentclass = c("tufte-handout", "tufte-book"),
   fig_width = 4,
   fig_height = 2.5,
-  fig_crop = TRUE,
+  fig_crop = "auto",
   dev = "pdf",
   highlight = "default",
+  margin_fig_pos = NULL,
   template = template_resources("tufte_handout", "tufte-handout.tex"),
   ...
 ) {
@@ -82,6 +130,30 @@ tufte_pdf <- function(
     }
   )
 
+  # Prepend our patched tufte-common.def to TEXINPUTS so kpathsea finds it
+  # before the system version. Fixes the xcolor usenames warning (#127).
+  patches_dir <- pkg_file("rmarkdown", "templates", "tufte_handout", "patches")
+  old_texinputs <- NULL
+  base_pre_processor <- format$pre_processor
+  format$pre_processor <- function(metadata, input_file, ...) {
+    old_texinputs <<- Sys.getenv("TEXINPUTS", unset = "")
+    # Trailing path separator tells kpathsea to also search default paths
+    Sys.setenv(
+      TEXINPUTS = paste0(patches_dir, .Platform$path.sep, old_texinputs)
+    )
+    if (is.function(base_pre_processor)) {
+      base_pre_processor(metadata, input_file, ...)
+    } else {
+      character(0)
+    }
+  }
+  # on_exit runs even when render() errors, so TEXINPUTS is always restored.
+  format$on_exit <- function() {
+    if (!is.null(old_texinputs)) {
+      Sys.setenv(TEXINPUTS = old_texinputs)
+    }
+  }
+
   knitr::knit_engines$set(marginfigure = function(options) {
     options$type <- "marginfigure"
     eng_block <- knitr::knit_engines$get("block")
@@ -104,13 +176,36 @@ tufte_pdf <- function(
 
   # set options
   knitr_options$opts_knit$width <- 45
+  # Expose the active tufte format to inline R helpers (e.g. quote_footer())
+  # via knitr's opts_knit channel.
+  knitr_options$opts_knit$tufte.format <- "handout"
+  if (!is.null(margin_fig_pos)) {
+    knitr_options$opts_chunk$margin_fig_pos <- margin_fig_pos
+  }
 
   # set hooks for special plot output
   knitr_options$knit_hooks$plot <- function(x, options) {
     # determine figure type
     if (isTRUE(options$fig.margin)) {
       options$fig.env <- "marginfigure"
-      if (is.null(options$fig.cap)) options$fig.cap <- ""
+      if (is.null(options$fig.cap)) {
+        options$fig.cap <- ""
+      }
+      # Apply margin_fig_pos as the vertical offset for margin figures,
+      # unless this chunk has its own fig.pos (#62). `options$fig.pos` is
+      # the merged value, so checking it directly would also fire for a
+      # global `knitr::opts_chunk$set(fig.pos = "htbp")` intended for
+      # regular figures, yielding `\begin{marginfigure}[htbp]` (invalid:
+      # the optional argument is a length, not a placement specifier).
+      # chunk_overrides_fig_pos() distinguishes chunk-level values (header
+      # literal or opts_template/opts.label injection) from the merged
+      # global default.
+      if (
+        !is.null(options$margin_fig_pos) &&
+          !chunk_overrides_fig_pos(options)
+      ) {
+        options$fig.pos <- options$margin_fig_pos
+      }
     } else if (isTRUE(options$fig.fullwidth)) {
       options$fig.env <- "figure*"
       if (is.null(options$fig.cap)) options$fig.cap <- ""
